@@ -8,13 +8,13 @@
 
 #include "InitStuffs.h"
 
-#include "imgui.h"
-#include "imgui_impl_sdl.h"
-#include "imgui_impl_opengl3.h"
+#include "Libs/imgui/imgui.h"
+#include "Libs/imgui/examples/imgui_impl_sdl.h"
+#include "Libs/imgui/examples/imgui_impl_opengl3.h"
 
-#include "RtMidi.h"
+#include "Libs/rtmidi/RtMidi.h"
 
-#include "SDL.h"
+#include <SDL2/SDL.h>
 #include "GL/glew.h"
 #endif
 
