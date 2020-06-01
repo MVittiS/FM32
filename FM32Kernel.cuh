@@ -31,26 +31,26 @@ template <int N>
 struct GPUOperatorPack
 {
     FMState<N> stateBegin, stateEnd;
-	float previousOutput[N];
+    float previousOutput[N];
     float phase[N];
 };
 
 template <int N, int nVoices = 1>
 struct CPUOperatorPack
 {
-	GPUOperatorPack<N> cpuOperators;
-	GPUOperatorPack<N>* gpuOperators;
+    GPUOperatorPack<N> cpuOperators;
+    GPUOperatorPack<N>* gpuOperators;
     size_t allocPitch;
 
-	void updateGPUOperatorFreqs()
-	{
-		cudaMemcpy
-		(
-			gpuOperators->stateBegin.phaseIncrement,
-			cpuOperators.stateBegin.phaseIncrement,
-			sizeof(GPUOperatorPack<N>::phaseIncrement),
-			::cudaMemcpyHostToDevice
-		);
+    void updateGPUOperatorFreqs()
+    {
+        cudaMemcpy
+        (
+            gpuOperators->stateBegin.phaseIncrement,
+            cpuOperators.stateBegin.phaseIncrement,
+            sizeof(GPUOperatorPack<N>::phaseIncrement),
+            ::cudaMemcpyHostToDevice
+        );
         cudaMemcpy
         (
             gpuOperators->stateEnd.phaseIncrement,
@@ -58,10 +58,10 @@ struct CPUOperatorPack
             sizeof(GPUOperatorPack<N>::phaseIncrement),
             ::cudaMemcpyHostToDevice
         );
-	};
+    };
 
-	void updateGPUModulationMatrix()
-	{
+    void updateGPUModulationMatrix()
+    {
         cudaMemcpy
         (
             gpuOperators->stateBegin.modMatrix[0],
@@ -69,24 +69,24 @@ struct CPUOperatorPack
             sizeof(GPUOperatorPack<N>::modMatrix),
             ::cudaMemcpyHostToDevice
         );
-		cudaMemcpy
-		(
+        cudaMemcpy
+        (
             gpuOperators->stateEnd.modMatrix[0],
             cpuOperators.stateEnd.modMatrix[0],
-			sizeof(GPUOperatorPack<N>::modMatrix),
-			::cudaMemcpyHostToDevice
-		);
-	};
+            sizeof(GPUOperatorPack<N>::modMatrix),
+            ::cudaMemcpyHostToDevice
+        );
+    };
 
-	void updateGPUOperatorVolumes()
-	{
-		cudaMemcpy
-		(
-			gpuOperators->stateBegin.outputVolume,
-			cpuOperators.stateBegin.outputVolume,
-			sizeof(GPUOperatorPack<N>::outputVolume),
-			::cudaMemcpyHostToDevice
-		);
+    void updateGPUOperatorVolumes()
+    {
+        cudaMemcpy
+        (
+            gpuOperators->stateBegin.outputVolume,
+            cpuOperators.stateBegin.outputVolume,
+            sizeof(GPUOperatorPack<N>::outputVolume),
+            ::cudaMemcpyHostToDevice
+        );
         cudaMemcpy
         (
             gpuOperators->stateEnd.outputVolume,
@@ -94,17 +94,17 @@ struct CPUOperatorPack
             sizeof(GPUOperatorPack<N>::outputVolume),
             ::cudaMemcpyHostToDevice
         );
-	};
+    };
 
-	void updateGPUOperators()
-	{
-		cudaMemcpy
-		(
-			gpuOperators,
-			&cpuOperators,
-			sizeof(FMState<N>) * 2,
-			::cudaMemcpyHostToDevice
-		);
+    void updateGPUOperators()
+    {
+        cudaMemcpy
+        (
+            gpuOperators,
+            &cpuOperators,
+            sizeof(FMState<N>) * 2,
+            ::cudaMemcpyHostToDevice
+        );
 
         for (size_t voice = 1; voice != nVoices; ++voice)
         {
@@ -116,30 +116,30 @@ struct CPUOperatorPack
                 ::cudaMemcpyDeviceToDevice
             );
         }
-	};
+    };
 
-	CPUOperatorPack()
-	{
+    CPUOperatorPack()
+    {
         memset(&cpuOperators, 0, sizeof(GPUOperatorPack<N>));
         cudaMallocPitch(&gpuOperators, &allocPitch, sizeof(GPUOperatorPack<N>), nVoices);
-		updateGPUOperators();
-	};
+        updateGPUOperators();
+    };
 
-	~CPUOperatorPack()
-	{
-		cudaFree(gpuOperators);
-	};
+    ~CPUOperatorPack()
+    {
+        cudaFree(gpuOperators);
+    };
 
 };
 
 template <int N>
 __global__ void processFM(GPUOperatorPack<N>* operators, size_t allocPitch,
-	const size_t nVoices, const size_t nSamples, float* outputBuffer)
+    const size_t nVoices, const size_t nSamples, float* outputBuffer)
 {
     const float invNSamples = 1.0f / float(nSamples);
     constexpr float twoPi = M_PI * 2.0f;
-	const auto voice = blockIdx.x;
-	const auto op = threadIdx.x;
+    const auto voice = blockIdx.x;
+    const auto op = threadIdx.x;
 
     if (op >= N || voice >= nVoices)
     {
@@ -156,46 +156,46 @@ __global__ void processFM(GPUOperatorPack<N>* operators, size_t allocPitch,
     previousOutput[op] = thisOperator.previousOutput[op];
 
     for (int sample = 0; sample < nSamples; sample++)
-	{
+    {
         const float mixFactor = sample * invNSamples;
         const float oldPhase = previousPhase[op];
 
-		// Each thread is an Operator;
+        // Each thread is an Operator;
         // Each block a Voice!
-		float fmAccum = 0.0f;
+        float fmAccum = 0.0f;
 
-		for (int x = 0; x < N; x++) 
+        for (int x = 0; x < N; x++) 
         {
-			fmAccum += previousOutput[x]
-				* mix(mixFactor, 
+            fmAccum += previousOutput[x]
+                * mix(mixFactor, 
                       thisOperator.stateBegin.modMatrix[x][op], // Invert the access dimension, and you get a 10x slowdown on a GT640M -
                       thisOperator.stateEnd.modMatrix[x][op]);  // but only a 30% slowdown on a P400; likely due to L2 cache size!
-		}
+        }
 
         const float fmOutput = __sinf(twoPi * (oldPhase + fmAccum));
         previousOutput[op] = fmOutput;
 
         const float phaseIncrement = mix(mixFactor,
             thisOperator.stateBegin.phaseIncrement[op],
-			thisOperator.stateEnd.phaseIncrement[op]);
+            thisOperator.stateEnd.phaseIncrement[op]);
 
         previousPhase[op] = fract(oldPhase + phaseIncrement);
 
         const float mixedState = fmOutput * mix(mixFactor,
             thisOperator.stateBegin.outputVolume[op], thisOperator.stateEnd.outputVolume[op]);
 
-		float accum = mixedState;
+        float accum = mixedState;
         constexpr uint32_t ALL_WARPS = 0xFFFFFFFF;
-		accum += __shfl_xor_sync(ALL_WARPS, accum, 1, 32);
-		accum += __shfl_xor_sync(ALL_WARPS, accum, 2, 32);
-		accum += __shfl_xor_sync(ALL_WARPS, accum, 4, 32);
-		accum += __shfl_xor_sync(ALL_WARPS, accum, 8, 32);
-		accum += __shfl_xor_sync(ALL_WARPS, accum, 16, 32);
+        accum += __shfl_xor_sync(ALL_WARPS, accum, 1, 32);
+        accum += __shfl_xor_sync(ALL_WARPS, accum, 2, 32);
+        accum += __shfl_xor_sync(ALL_WARPS, accum, 4, 32);
+        accum += __shfl_xor_sync(ALL_WARPS, accum, 8, 32);
+        accum += __shfl_xor_sync(ALL_WARPS, accum, 16, 32);
 
-		if (op == 0) {
+        if (op == 0) {
             outputBuffer[N * sample + voice] = accum;
-		}
-	}
+        }
+    }
 
     thisOperator.phase[op] = previousPhase[op];
     thisOperator.previousOutput[op] = previousOutput[op];

@@ -64,11 +64,11 @@ int main(int argc, char** args)
 
     cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync);
     cudaError_t cudaStatus = cudaSuccess;
-	cudaStatus = cudaSetDevice(0);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "Failed to init GPU!\n");
-		return 1;
-	}
+    cudaStatus = cudaSetDevice(0);
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "Failed to init GPU!\n");
+        return 1;
+    }
 
     TestReduceFM();
 
@@ -554,7 +554,7 @@ int main(int argc, char** args)
 
 #else
 
-	testFMSynthesis(32);
+    testFMSynthesis(32);
     testFMSynthesis(64);
     testFMSynthesis(128);
     testFMSynthesis(256);
@@ -575,15 +575,15 @@ int main(int argc, char** args)
     SDL_Quit();
 #endif
 
-	// cudaDeviceReset must be called before exiting in order for profiling and
-	// tracing tools such as Nsight and Visual Profiler to show complete traces.
-	cudaStatus = cudaDeviceReset();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaDeviceReset failed!");
-		return 1;
-	}
+    // cudaDeviceReset must be called before exiting in order for profiling and
+    // tracing tools such as Nsight and Visual Profiler to show complete traces.
+    cudaStatus = cudaDeviceReset();
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaDeviceReset failed!");
+        return 1;
+    }
 
     cudaDeviceSynchronize();
 
-	return 0;
+    return 0;
 }
