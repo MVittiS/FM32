@@ -18,4 +18,4 @@ To-do!
 
 ## License
 
-Like my other project, [VQLib](https://github.com/MVittiS/VQLib), FM32 is distributed under a custom license that allows you to do anything with this code, as long as you don't make money out of the code itself - feel free to use the generated sounds in anything commercial and free alike, or even sell patches/presets. Just don't forget to give me a shout-out!
+FM32 is distributed under the AGPL 3.0.
